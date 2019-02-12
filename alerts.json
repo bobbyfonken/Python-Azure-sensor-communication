@@ -1,0 +1,113 @@
+[{
+	"id": "1",
+	"naam": "Alarmering 1",
+	"ANDOperator": true,
+	"alarmen": [{
+		"alarmId": "1",
+		"waarschuwing": true,
+		"kritiek": false
+	}, {
+		"alarmId": "2",
+		"waarschuwing": true,
+		"kritiek": false
+	}],
+	"sensoren": [{
+		"sensorId": "t1",
+		"grensMin": 10,
+		"grensMax": 30,
+		"grensKritiekMin": 0,
+		"grensKritiekMax": 60
+	}, {
+		"sensorId": "h1",
+		"grensMin": 20,
+		"grensMax": 50,
+		"grensKritiekMin": 0,
+		"grensKritiekMax": 100
+	}],
+	"_rid": "jNxjAMi1t5MBAAAAAAAAAA==",
+	"_self": "dbs/jNxjAA==/colls/jNxjAMi1t5M=/docs/jNxjAMi1t5MBAAAAAAAAAA==/",
+	"_etag": "\"0200cbd1-0000-0000-0000-5c5193000000\"",
+	"_attachments": "attachments/",
+	"_ts": 1548849920
+}, {
+	"id": "2",
+	"naam": "Alarmering 2",
+	"ANDOperator": false,
+	"alarmen": [{
+		"alarmId": "3",
+		"waarschuwing": true,
+		"kritiek": false
+	}],
+	"sensoren": [{
+		"sensorId": "t1",
+		"grensMin": 10,
+		"grensMax": 30,
+		"grensKritiekMin": 0,
+		"grensKritiekMax": 60
+	}, {
+		"sensorId": "s1",
+		"grensMin": 20,
+		"grensMax": 50,
+		"grensKritiekMin": 0,
+		"grensKritiekMax": 100
+	}],
+	"_rid": "jNxjAMi1t5MCAAAAAAAAAA==",
+	"_self": "dbs/jNxjAA==/colls/jNxjAMi1t5M=/docs/jNxjAMi1t5MCAAAAAAAAAA==/",
+	"_etag": "\"02003dab-0000-0000-0000-5c501f520000\"",
+	"_attachments": "attachments/",
+	"_ts": 1548754770
+}, {
+	"id": "3",
+	"naam": "Alarmering 3",
+	"ANDOperator": true,
+	"alarmen": [{
+		"alarmId": "4",
+		"waarschuwing": true,
+		"kritiek": false
+	}, {
+		"alarmId": "10",
+		"waarschuwing": false,
+		"kritiek": true
+	}],
+	"sensoren": [{
+		"sensorId": "h1",
+		"grensMin": 0,
+		"grensMax": 30,
+		"grensKritiekMin": 0,
+		"grensKritiekMax": 100
+	}, {
+		"sensorId": "s1",
+		"grensMin": 0,
+		"grensMax": 10,
+		"grensKritiekMin": 0,
+		"grensKritiekMax": 30
+	}],
+	"id": "df524395-40c9-5a08-0243-a84e80784851",
+	"_rid": "jNxjAMi1t5MMAAAAAAAAAA==",
+	"_self": "dbs/jNxjAA==/colls/jNxjAMi1t5M=/docs/jNxjAMi1t5MMAAAAAAAAAA==/",
+	"_etag": "\"020046d3-0000-0000-0000-5c519f6d0000\"",
+	"_attachments": "attachments/",
+	"_ts": 1548853101
+}, {
+	"id": "4",
+	"naam": "BobbyAlarm",
+	"ANDOperator": true,
+	"alarmen": [{
+		"alarmId": "9",
+		"waarschuwing": true,
+		"kritiek": false
+	}],
+	"sensoren": [{
+		"sensorId": "t1",
+		"grensMin": 0,
+		"grensMax": 30,
+		"grensKritiekMin": -10,
+		"grensKritiekMax": 99
+	}],
+	"id": "8090fbaf-94ea-b7fe-f76e-83198581280d",
+	"_rid": "jNxjAMi1t5MNAAAAAAAAAA==",
+	"_self": "dbs/jNxjAA==/colls/jNxjAMi1t5M=/docs/jNxjAMi1t5MNAAAAAAAAAA==/",
+	"_etag": "\"02006ed3-0000-0000-0000-5c51a7560000\"",
+	"_attachments": "attachments/",
+	"_ts": 1548855126
+}]
