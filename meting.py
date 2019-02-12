@@ -110,10 +110,10 @@ def CheckSensors(messages):
 				## Add sensor to file and send update to Azure
 				##print(meting['sensorId'] + ": scenario 3")
 				sensorFileDict[meting['sensorId']] = "Connected"
-			elif countInFile == -1:
+			#elif countInFile == -1:
 				## Remove sensor from file and send update to Azure
 				##print(meting['sensorId'] + ": scenario 2")
-			elif countNotInFile < - 1:
+			#elif countNotInFile < - 1:
 				## This can be ignored, nothing needs to be done
 				##print(meting['sensorId'] + ": scenario 4")
 
