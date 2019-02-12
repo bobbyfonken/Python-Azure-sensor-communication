@@ -185,7 +185,7 @@ if __name__ == '__main__':
 						##print("Message transmitted to IoT Hub")
 						##print("Message that was send: {}".format(result))
 
-						## NEW UNTESTED WAY BELOW CALLED DEFINITION
+						## NEW TESTED WAY TO SEND TO AZURE
 						send_azure_message(result)
 						print("\n")
 
