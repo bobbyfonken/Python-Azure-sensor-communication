@@ -34,7 +34,7 @@
 	"naam": "Alarmering 2",
 	"ANDOperator": false,
 	"alarmen": [{
-		"alarmId": "3",
+		"alarmId": "10",
 		"waarschuwing": true,
 		"kritiek": false
 	}],
@@ -58,14 +58,14 @@
 	"_ts": 1548754770
 }, {
 	"id": "3",
-	"naam": "Alarmering 3",
+	"naam": "Alarmering 1",
 	"ANDOperator": true,
 	"alarmen": [{
-		"alarmId": "4",
+		"alarmId": "2",
 		"waarschuwing": true,
 		"kritiek": false
 	}, {
-		"alarmId": "10",
+		"alarmId": "1",
 		"waarschuwing": false,
 		"kritiek": true
 	}],
@@ -93,7 +93,7 @@
 	"naam": "BobbyAlarm",
 	"ANDOperator": true,
 	"alarmen": [{
-		"alarmId": "9",
+		"alarmId": "2",
 		"waarschuwing": true,
 		"kritiek": false
 	}],

@@ -5,12 +5,59 @@ import time
 import json
 from datetime import datetime
 import RPi.GPIO as GPIO
+from multiprocessing.dummy import Pool as ThreadPool
+import mario
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # Numbers 1 - 6 Are LED's | Numbers 7 - 10 are buzzers
 alarmDict = {"1": 14, "2": 15, "3": 18, "4": 23, "5": 24, "6": 25, "7": 8, "8": 7, "9": 12, "10": 16}
+
+# Dictionary used to store the state of the previous alerts. This is needed so that the alert does not get switched off when checking the next alert
+previousAlert = {}
+
+# Definition that checks the alerts previous state and then gives one when necessary
+def check_alert(alarmID, state):
+	##print(state)
+	# Check if alert has already been given, if it hasn't give alert, else we do nothing
+	if alarmID not in previousAlert and state == 1:
+		if int(alarmID) >= 7:
+			# Let buzzer run in backgorund while script continous
+			# First put the pin number in an array to use the threadpool
+			# pins = []
+			# pins.append(alarmDict[alarmID])
+			# pool = ThreadPool(2)
+			# results = pool.map(buzzer, pins)
+			buzzer(alarmDict[alarmID])
+		else:
+			light(alarmDict[alarmID], state)
+
+		# Store the state of the alarmId
+		previousAlert[alarmID] = 1
+		print("GPIO: " + str(alarmDict[alarmID]) + " aan")
+
+
+# Defination to control the buzzers
+def buzzer(pin):
+	mario.main_buzz(int(pin))
+	# count = 0
+	# pitch = 800
+	# duration = 0.1
+	# GPIO.setup(pin, GPIO.OUT)
+	# period = 1.0 / pitch					#in physics, the period (sec/cyc) is the inverse of the frequency (cyc/sec)
+	# delay = period / 2						#calcuate the time for half of the wave
+	# cycles = int(duration * pitch)			#the number of waves to produce is the duration times the frequency
+
+	# while count < 5:
+		# for i in range(cycles):				#start a loop from 0 to the variable "cycles" calculated above
+			# GPIO.output(pin, True)	#set pin 18 to high
+			# time.sleep(delay)				#wait with pin 18 high
+			# GPIO.output(pin, False)	#set pin 18 to low
+			# time.sleep(delay)				#wait with pin 18 low
+		# count += 1
+		# time.sleep(0.2)
+
 
 # Definition that put on certain light
 def light(pin, state):
@@ -32,7 +79,7 @@ def check_alerts(metingen):
 	# print the observed measurements
 	##print("-----------------------")
 	##print("Ontvangen metingen: ")
-	for meting in metingen['metingen']:
+	for meting in metingen:
 		if meting['status'] == 1:
 			metingenDict[meting['sensorId']] = meting['waarde']
 			##print(meting['sensorId'] + ": " + str(metingenDict[meting['sensorId']]))
@@ -63,7 +110,7 @@ def check_alerts(metingen):
 						##kritiek = True
 						alertCheck[grens['sensorId']] = True
 
-					# Check for warning, if critical is already true skip else check warning 
+					# Check for warning, if critical is already true skip else check warning
 					# If warning is true set the sensorId key value to false to indicate this further down the script
 					# Else we keep it on "nothing"
 					if alertCheck[grens['sensorId']] != True:
@@ -93,36 +140,38 @@ def check_alerts(metingen):
 						# Set alarm off if all are critical or a combination of critical and warning
 						if countCrit + countWarn == len(alertCheck) and countIgnore == 0:
 							##print("id: " + soort['alarmId'] + "	-> kritiek!")
-							light(alarmDict[soort['alarmId']], 1)
+							# Check alert for its previous state and activate it if necessary with current state
+							check_alert(soort['alarmId'], 1)
 						else:
-							light(alarmDict[soort['alarmId']], 0)
+							check_alert(soort['alarmId'], 0)
 					elif soort['waarschuwing']:
 						# Set alarm of if all warning
 						if countWarn == len(alertCheck):
 							##print("id: " + soort['alarmId'] + "	-> warning!")
-							light(alarmDict[soort['alarmId']], 1)
+							check_alert(soort['alarmId'], 1)
 						else:
-							light(alarmDict[soort['alarmId']], 0)
+							check_alert(soort['alarmId'], 0)
 
 			if alarm['ANDOperator'] is False:
 				for soort in alarm['alarmen']:
 					if soort['kritiek']:
 						if countCrit >= 1:
 							##print("id: " + soort['alarmId'] + "	-> kritiek!")
-							light(alarmDict[soort['alarmId']], 1)
+							check_alert(soort['alarmId'], 1)
 						else:
-							light(alarmDict[soort['alarmId']], 0)
+							check_alert(soort['alarmId'], 0)
 					elif soort['waarschuwing']:
 						if countWarn >= 1:
 							##print("id: " + soort['alarmId'] + "	-> warning!")
-							light(alarmDict[soort['alarmId']], 1)
+							check_alert(soort['alarmId'], 1)
 						else:
-							light(alarmDict[soort['alarmId']], 0)
+							check_alert(soort['alarmId'], 0)
 
 			# Reset these variables each alarmering
 			alertCheck = {}
 			countIgnore = 0
 			countWarn = 0
 			countCrit = 0
-
 		##print("\n")
+	# Reset the previousAlert dict for when the next measurements comes
+	previousAlert = {}
