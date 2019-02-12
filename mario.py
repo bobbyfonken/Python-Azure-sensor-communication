@@ -1,6 +1,8 @@
 import RPi.GPIO as GPIO
 import time
 
+buzzer_pin = 27
+
 notes = {
     'B0' : 31,
     'C1' : 33, 'CS1' : 35,
@@ -89,6 +91,7 @@ underworld_tempo = [
 ]
 
 def buzz(frequency, length, pin):     #create the function "buzz" and feed it the pitch and duration)
+
     if(frequency==0):
         time.sleep(length)
         return
@@ -103,19 +106,15 @@ def buzz(frequency, length, pin):     #create the function "buzz" and feed it th
         time.sleep(delayValue)        #wait with pin 27 low
 
 def setup(pin):
-    GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.IN)
     GPIO.setup(pin, GPIO.OUT)
-
-def destroy():
-    GPIO.cleanup()                # Release resource
 
 def play(melody, tempo, pin, pace=0.800):
 
     for i in range(0, len(melody)):        # Play song
 
         noteDuration = pace/tempo[i]
-        buzz(melody[i], noteDuration, pin)    # Change the frequency along the song note
+        buzz(melody[i],noteDuration, pin)    # Change the frequency along the song note
 
         pauseBetweenNotes = noteDuration * 1.30
         time.sleep(pauseBetweenNotes)
@@ -123,5 +122,4 @@ def play(melody, tempo, pin, pace=0.800):
 
 def main_buzz(pin):
     setup(pin)
-    play(underworld_melody, underworld_tempo, pin, 0.800)
-    destroy()
+    play(underworld_melody,underworld_tempo,  pin, 0.800)

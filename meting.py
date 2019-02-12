@@ -141,7 +141,7 @@ if __name__ == '__main__':
 			##resultJSON = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":5, "status": 1},{"sensorId":"a1","waarde":23.70, "status": 1},{"sensorId":"h1","waarde":27.30, "status": 1}]}
+			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":60, "status": 1},{"sensorId":"a1","waarde":23.70, "status": 1},{"sensorId":"h1","waarde":5, "status": 1}]}
 			JSON = json.dumps(JSONTemp)
 
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
@@ -151,12 +151,12 @@ if __name__ == '__main__':
 				# Use function in other script to evaluate the alerts
 				# This only evaluates the messages where the sensorId status = 1
 				# Run this program as a thread so the rest will continue
-				thread = threading.Thread(target=alerts.check_alerts, kwargs=(JSONP))
+				##thread = threading.Thread(target=alerts.check_alerts, kwargs=(JSONP))
 				# Daemonize thread
-				thread.daemon = True
-				thread.start()
+				##thread.daemon = True
+				##thread.start()
 
-				##alerts.check_alerts(JSONP)
+				alerts.check_alerts(JSONP)
 				##count += 1
 
 				# Check local file to see if a sensor has already been connected
@@ -206,7 +206,7 @@ if __name__ == '__main__':
 			else:
 				print("Ignored message")
 				print("\n")
-			time.sleep(10)
+			time.sleep(12)
 	except KeyboardInterrupt:
 		GPIO.cleanup()
 		print("\n")

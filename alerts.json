@@ -93,7 +93,7 @@
 	"naam": "BobbyAlarm",
 	"ANDOperator": true,
 	"alarmen": [{
-		"alarmId": "2",
+		"alarmId": "3",
 		"waarschuwing": true,
 		"kritiek": false
 	}],

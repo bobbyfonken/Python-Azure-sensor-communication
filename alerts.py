@@ -5,7 +5,7 @@ import time
 import json
 from datetime import datetime
 import RPi.GPIO as GPIO
-from multiprocessing.dummy import Pool as ThreadPool
+import threading
 import mario
 
 GPIO.setmode(GPIO.BCM)
@@ -17,29 +17,9 @@ alarmDict = {"1": 14, "2": 15, "3": 18, "4": 23, "5": 24, "6": 25, "7": 8, "8": 
 # Dictionary used to store the state of the previous alerts. This is needed so that the alert does not get switched off when checking the next alert
 previousAlert = {}
 
-# Definition that checks the alerts previous state and then gives one when necessary
-def check_alert(alarmID, state):
-	##print(state)
-	# Check if alert has already been given, if it hasn't give alert, else we do nothing
-	if alarmID not in previousAlert and state == 1:
-		if int(alarmID) >= 7:
-			# Let buzzer run in backgorund while script continous
-			# First put the pin number in an array to use the threadpool
-			# pins = []
-			# pins.append(alarmDict[alarmID])
-			# pool = ThreadPool(2)
-			# results = pool.map(buzzer, pins)
-			buzzer(alarmDict[alarmID])
-		else:
-			light(alarmDict[alarmID], state)
-
-		# Store the state of the alarmId
-		previousAlert[alarmID] = 1
-		print("GPIO: " + str(alarmDict[alarmID]) + " aan")
-
-
 # Defination to control the buzzers
 def buzzer(pin):
+	# Make sure the duration of the sound is one second less than the amount of message to send.
 	mario.main_buzz(int(pin))
 	# count = 0
 	# pitch = 800
@@ -64,6 +44,28 @@ def light(pin, state):
 	GPIO.setup(pin, GPIO.OUT)
 	GPIO.output(pin, state)
 
+
+# Definition that checks the alerts previous state and then gives one when necessary
+def check_alert(alarmID, state):
+	##print(state)
+	# Check if alert has already been given, if it hasn't give alert, else we do nothing
+	if alarmID not in previousAlert and state == 1:
+		if int(alarmID) >= 7:
+			# Let buzzer run in a thread in the backgorund while script continous
+			thread = threading.Thread(target=buzzer, args=(alarmDict[alarmID],))
+			# Daemonize thread
+			thread.daemon = True
+			thread.start()
+			##buzzer(alarmDict[alarmID])
+		else:
+			light(alarmDict[alarmID], state)
+
+		# Store the state of the alarmId
+		previousAlert[alarmID] = 1
+		print("GPIO: " + str(alarmDict[alarmID]) + " aan")
+	print(previousAlert)
+
+
 # Main definition that gets called in the other script
 def check_alerts(metingen):
 	#Variables
@@ -79,7 +81,7 @@ def check_alerts(metingen):
 	# print the observed measurements
 	##print("-----------------------")
 	##print("Ontvangen metingen: ")
-	for meting in metingen:
+	for meting in metingen['metingen']:
 		if meting['status'] == 1:
 			metingenDict[meting['sensorId']] = meting['waarde']
 			##print(meting['sensorId'] + ": " + str(metingenDict[meting['sensorId']]))
@@ -94,7 +96,7 @@ def check_alerts(metingen):
 	# Loop trough the alarmeringen
 	for alarm in JSON:
 
-		##print("Naam: " + alarm['naam'])
+		print("Naam: " + alarm['naam'])
 
 		# Loop trough the observed measurements
 		for k, v in metingenDict.items():
@@ -121,9 +123,9 @@ def check_alerts(metingen):
 							##waarschuwing = True
 							alertCheck[grens['sensorId']] = False
 
-		##print(alertCheck)
+		print(alertCheck)
 
-		##print("Alarmen die dienen af te gaan:")
+		print("Alarmen die dienen af te gaan:")
 		# If alertCheck is empty don't check the alarmering
 		if len(alertCheck) != 0:
 			for k, v in alertCheck.items():
@@ -149,6 +151,9 @@ def check_alerts(metingen):
 						if countWarn == len(alertCheck):
 							##print("id: " + soort['alarmId'] + "	-> warning!")
 							check_alert(soort['alarmId'], 1)
+						# Happens when value is critical, so also warning, but critical = false and warning = true. This is because of the count system I use.
+						elif countCrit + countWarn == len(alertCheck) and countIgnore == 0:
+							check_alert(soort['alarmId'], 1)
 						else:
 							check_alert(soort['alarmId'], 0)
 
@@ -161,7 +166,7 @@ def check_alerts(metingen):
 						else:
 							check_alert(soort['alarmId'], 0)
 					elif soort['waarschuwing']:
-						if countWarn >= 1:
+						if countWarn >= 1 or countCrit >= 1:
 							##print("id: " + soort['alarmId'] + "	-> warning!")
 							check_alert(soort['alarmId'], 1)
 						else:
@@ -174,4 +179,4 @@ def check_alerts(metingen):
 			countCrit = 0
 		##print("\n")
 	# Reset the previousAlert dict for when the next measurements comes
-	previousAlert = {}
+	previousAlert.clear()
