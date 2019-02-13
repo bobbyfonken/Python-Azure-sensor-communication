@@ -123,8 +123,8 @@ def play_mario(melody, tempo, pin, pace=0.800):
 def play_sirene(pin, lenght):
     # We rekenen 1 seconde per sensor: After choosing the pause, in this case 0.2 seconde we divide lenght by this and that is the amount of replays to get a nice sound lasting the amount of sensors
     count = 0
-    pause = 0.1
-    replays = lenght / pause
+    pause = 0.15
+    replays = (lenght / pause) + 4 # Add reserve 2 for extra lenght
     pitch = 1000
     duration = 0.1
     period = 1.0 / pitch					#in physics, the period (sec/cyc) is the inverse of the frequency (cyc/sec)

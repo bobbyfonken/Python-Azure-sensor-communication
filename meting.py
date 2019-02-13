@@ -70,6 +70,7 @@ def CheckSensors(messages):
 	countInFile = 0
 	countNotInFile = 0
 	sensorFileDict = {}
+	##print(messages)
 	messages = json.loads(messages)
 
 	# Checks first if the file exist. If not created new and put first sensor in it
@@ -109,14 +110,14 @@ def CheckSensors(messages):
 				## This can be ignored, nothing needs to be done
 				##print(meting['sensorId'] + ": scenario 1")
 				sensorFileDict[meting['sensorId']] = "Connected"
-			elif countNotInFile > 1:
+			elif countNotInFile >= 1:
 				## Add sensor to file and send update to Azure
 				##print(meting['sensorId'] + ": scenario 3")
 				sensorFileDict[meting['sensorId']] = "Connected"
-			#elif countInFile == -1:
+			##elif countInFile == -1:
 				## Remove sensor from file and send update to Azure
 				##print(meting['sensorId'] + ": scenario 2")
-			#elif countNotInFile < - 1:
+			##elif countNotInFile <= - 1:
 				## This can be ignored, nothing needs to be done
 				##print(meting['sensorId'] + ": scenario 4")
 
