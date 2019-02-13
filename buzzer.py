@@ -109,7 +109,7 @@ def setup(pin):
     GPIO.setup(pin, GPIO.IN)
     GPIO.setup(pin, GPIO.OUT)
 
-def play(melody, tempo, pin, pace=0.800):
+def play_mario(melody, tempo, pin, pace=0.800):
 
     for i in range(0, len(melody)):        # Play song
 
@@ -120,6 +120,28 @@ def play(melody, tempo, pin, pace=0.800):
         time.sleep(pauseBetweenNotes)
 
 
-def main_buzz(pin):
+def play_sirene(pin, lenght):
+    # We rekenen 1 seconde per sensor: After choosing the pause, in this case 0.2 seconde we divide lenght by this and that is the amount of replays to get a nice sound lasting the amount of sensors
+    count = 0
+    pause = 0.1
+    replays = lenght / pause
+    pitch = 1000
+    duration = 0.1
+    period = 1.0 / pitch					#in physics, the period (sec/cyc) is the inverse of the frequency (cyc/sec)
+    delay = period / 2						#calcuate the time for half of the wave
+    cycles = int(duration * pitch)			#the number of waves to produce is the duration times the frequency
+
+    while count <= replays:
+        for i in range(cycles):				#start a loop from 0 to the variable "cycles" calculated above
+            GPIO.output(pin, True)			#set pin 18 to high
+            time.sleep(delay)				#wait with pin 18 high
+            GPIO.output(pin, False)			#set pin 18 to low
+            time.sleep(delay)				#wait with pin 18 low
+        count += 1
+        time.sleep(pause)
+
+
+def main_buzz(pin, lenght):
     setup(pin)
-    play(underworld_melody,underworld_tempo,  pin, 0.800)
+    #play_mario(underworld_melody,underworld_tempo,  pin, 0.800)
+    play_sirene(pin, lenght)
