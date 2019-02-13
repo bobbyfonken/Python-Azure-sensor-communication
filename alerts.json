@@ -93,12 +93,12 @@
 	"naam": "BobbyAlarm",
 	"ANDOperator": true,
 	"alarmen": [{
-		"alarmId": "3",
+		"alarmId": "10",
 		"waarschuwing": true,
 		"kritiek": false
 	}],
 	"sensoren": [{
-		"sensorId": "t1",
+		"sensorId": "h1",
 		"grensMin": 0,
 		"grensMax": 30,
 		"grensKritiekMin": -10,

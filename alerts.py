@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 import RPi.GPIO as GPIO
 import threading
-import mario
+import buzzers
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -19,24 +19,8 @@ previousAlert = {}
 
 # Defination to control the buzzers
 def buzzer(pin, songLenght):
-	# Make sure the duration of the sound is about one second less than the duration between receiving new measurements.
-	mario.main_buzz(int(pin), songLenght)
-	# count = 0
-	# pitch = 800
-	# duration = 0.1
-	# GPIO.setup(pin, GPIO.OUT)
-	# period = 1.0 / pitch					#in physics, the period (sec/cyc) is the inverse of the frequency (cyc/sec)
-	# delay = period / 2						#calcuate the time for half of the wave
-	# cycles = int(duration * pitch)			#the number of waves to produce is the duration times the frequency
-
-	# while count < 5:
-		# for i in range(cycles):				#start a loop from 0 to the variable "cycles" calculated above
-			# GPIO.output(pin, True)	#set pin 18 to high
-			# time.sleep(delay)				#wait with pin 18 high
-			# GPIO.output(pin, False)	#set pin 18 to low
-			# time.sleep(delay)				#wait with pin 18 low
-		# count += 1
-		# time.sleep(0.2)
+	# You can add your buzzer sound in buzzer.py, this way you can give extra variable that would determine the sound played, for PoC we used one sound
+	buzzers.main_buzz(int(pin), songLenght)
 
 
 # Definition that put on certain light
@@ -77,12 +61,13 @@ def check_alerts(metingen):
 	countIgnore = 0
 	countWarn = 0
 	countCrit = 0
+	metingen = json.loads(metingen)
 
 	# print the observed measurements
 	##print("-----------------------")
 	##print("Ontvangen metingen: ")
 	for meting in metingen['metingen']:
-		if meting['status'] == 1:
+		if int(meting['status']) == 1:
 			metingenDict[meting['sensorId']] = meting['waarde']
 			##print(meting['sensorId'] + ": " + str(metingenDict[meting['sensorId']]))
 

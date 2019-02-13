@@ -19,7 +19,7 @@ sensorenJSON = {}
 # Variables fot the connection to the wifi module hub
 localIP     = "10.3.141.1"
 Port1       = 4001
-bufferSize  = 1024
+bufferSize  = 2048
 count = 0
 
 # Variables for the connection to Azure IoT Hub
@@ -30,7 +30,7 @@ PROTOCOL = IoTHubTransportProvider.MQTT
 UDPServerSocket1 = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
 # Bind to address and ip
-##UDPServerSocket1.bind((localIP, Port1))
+UDPServerSocket1.bind((localIP, Port1))
 
 
 # Shows the feedback result from Azure IoT Hub - 'OK' is the feedback you want
@@ -70,6 +70,7 @@ def CheckSensors(messages):
 	countInFile = 0
 	countNotInFile = 0
 	sensorFileDict = {}
+	messages = json.loads(messages)
 
 	# Checks first if the file exist. If not created new and put first sensor in it
 	# If it already exists, move trough the usual path
@@ -78,7 +79,7 @@ def CheckSensors(messages):
 
 	if fileCheck is False:
 		for meting in messages['metingen']:
-			if meting['status'] == 1:
+			if int(meting['status']) == 1:
 				sensorenJSON[meting['sensorId']] = "Connected"
 
 		# Write the data to a local file
@@ -94,7 +95,7 @@ def CheckSensors(messages):
 
 		for meting in messages['metingen']:
 			for k, v in current.items():
-				if meting['status'] == 1:
+				if int(meting['status']) == 1:
 					if meting['sensorId'] == k:
 						countInFile += 1
 					else:
@@ -136,16 +137,16 @@ if __name__ == '__main__':
 	try:
 		while(True):
 			# This waits untill a message is received, only then it will go further with the other code
-			##bytesAddressPair1 = UDPServerSocket1.recvfrom(bufferSize)
+			bytesAddressPair1 = UDPServerSocket1.recvfrom(bufferSize)
 			# This contains the JSON send from all the sensors at a given time
-			##resultJSON = bytesAddressPair1[0]
+			resultJSON = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":65, "status": 1},{"sensorId":"a1","waarde":23.70, "status": 1},{"sensorId":"h1","waarde":27.30, "status": 1}]}
-			JSON = json.dumps(JSONTemp)
+			##JSONTemp = {"metingen":[{"sensorId":"t1","waarde":65, "status": 1},{"sensorId":"a1","waarde":23.70, "status": 1},{"sensorId":"h1","waarde":27.30, "status": 1}]}
+			JSON = json.dumps(resultJSON)
 
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
-			if JSON[:1] != 'A':
+			if JSON[4:12] == 'metingen':
 				# Convert the received message in JSON that Python can read
 				JSONP = json.loads(JSON)
 				# Use function in other script to evaluate the alerts
@@ -163,11 +164,12 @@ if __name__ == '__main__':
 				CheckSensors(JSONP)
 
 				##time.sleep(2)
+				JSONP = json.loads(JSONP)
 
 				# Iterate over the different measurements and convert them to an Azure JSON format
 				for meting in JSONP['metingen']:
 					# status 1 means the sensor is connected
-					if meting['status'] == 1:
+					if int(meting['status']) == 1:
 						#print(meting)
 
 						#Define variables to send with each measurement
@@ -175,7 +177,7 @@ if __name__ == '__main__':
 						messageId = str(meting['sensorId']) + date.strftime("%Y%m%d%H%M%S%f").translate(None, ':-').replace(" ", "")
 
 						# Convert the Arduino JSON to Azure JSON and add some values according 
-						AzureJSON = {'messageId': messageId, 'sensorId': meting['sensorId'], 'waarde': meting['waarde'], 'tijdstip': date, 'status': meting['status']}
+						AzureJSON = {'messageId': messageId, 'sensorId': meting['sensorId'], 'waarde': meting['waarde'], 'tijdstip': date, 'status': int(meting['status'])}
 
 						# Convert the AzureJSON to JSON that Azure can send
 						result = json.dumps(AzureJSON, default = date_converter)
@@ -206,7 +208,7 @@ if __name__ == '__main__':
 			else:
 				print("Ignored message")
 				print("\n")
-			time.sleep(0.05)
+			time.sleep(0.2)
 	except KeyboardInterrupt:
 		GPIO.cleanup()
 		print("\n")
