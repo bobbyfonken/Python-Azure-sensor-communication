@@ -23,7 +23,8 @@ bufferSize  = 2048
 count = 0
 
 # Variables for the connection to Azure IoT Hub
-CONNECTION_STRING = "HostName=secodaHub.azure-devices.net;DeviceId=secodaPib;SharedAccessKey=4OS5jUxsttf4ouMY0CdPxnI4cz+k36TDt+SHR6KnguI="
+CONNECTION_Meting = "HostName=secodaHub.azure-devices.net;DeviceId=secodaPib;SharedAccessKey=4OS5jUxsttf4ouMY0CdPxnI4cz+k36TDt+SHR6KnguI="
+CONNECTION_Sensor = "HostName=secodaSensor.azure-devices.net;DeviceId=secodaSensor;SharedAccessKey=5AwQZ0GW7DY25/tWG2KA9XOMgc9vzDZv86yFt+hqhTQ="
 PROTOCOL = IoTHubTransportProvider.MQTT
 
 # Create a datagram socket
@@ -36,6 +37,8 @@ UDPServerSocket1.bind((localIP, Port1))
 # Shows the feedback result from Azure IoT Hub - 'OK' is the feedback you want
 def send_confirmation_callback(message, result, user_context):
 	print("Confirmation received for message with result = %s" % (result))
+	if str(result) == "BECAUSE_DESTROY":
+		print("resending message")
 
 
 # Converts a date so it can be JSON serialized
@@ -44,15 +47,19 @@ def date_converter(o):
         return o.__str__()
 
 # Sends the json to azure IoT Hub
-def send_azure_message(azureJSON):
-	# Establish the connection binding
-	##ORIGINAL##client = IoTHubClient(CONNECTION_STRING, PROTOCOL)
+def send_azure_message(messageJSON, key):
+	# Convert the AzureJSON to JSON that Azure can send
+	messageJSON = json.dumps(messageJSON, default = date_converter)
 
-	##client = IoTHubClient(CONNECTION_STRING, PROTOCOL)
-	##message = IoTHubMessage(azureJSON)
-	##client.send_event_async(message, send_confirmation_callback, None)
+	# Establish the connection binding
+	client = IoTHubClient(key, PROTOCOL)
+	# Prepare to send the message and then send it
+	message = IoTHubMessage(messageJSON)
+	client.send_event_async(message, send_confirmation_callback, None)
+
 	print("Message transmitted to IoT Hub")
-	print("Message that was send: {}".format(azureJSON))
+	print("Message that was send: {}".format(messageJSON))
+	# Wait one second to make sure the message sends properly
 	time.sleep(1)
 
 
@@ -70,8 +77,9 @@ def CheckSensors(messages):
 	countInFile = 0
 	countNotInFile = 0
 	sensorFileDict = {}
+	sensorJSON = {}
 	##print(messages)
-	messages = json.loads(messages)
+ 	messages = json.loads(messages)
 
 	# Checks first if the file exist. If not created new and put first sensor in it
 	# If it already exists, move trough the usual path
@@ -108,18 +116,22 @@ def CheckSensors(messages):
 						countNotInFile -= 1
 			if countInFile == 1:
 				## This can be ignored, nothing needs to be done
-				##print(meting['sensorId'] + ": scenario 1")
+				print(meting['sensorId'] + ": scenario 1")
 				sensorFileDict[meting['sensorId']] = "Connected"
 			elif countNotInFile >= 1:
 				## Add sensor to file and send update to Azure
-				##print(meting['sensorId'] + ": scenario 3")
+				print(meting['sensorId'] + ": scenario 3")
 				sensorFileDict[meting['sensorId']] = "Connected"
-			##elif countInFile == -1:
+				sensorJSON = {'sensorId': meting['sensorId'], 'status': True}
+				send_azure_message(sensorJSON, CONNECTION_Sensor)
+			elif countInFile == -1:
 				## Remove sensor from file and send update to Azure
-				##print(meting['sensorId'] + ": scenario 2")
-			##elif countNotInFile <= - 1:
+				print(meting['sensorId'] + ": scenario 2")
+				sensorJSON = {'sensorId': meting['sensorId'], 'status': False}
+				send_azure_message(sensorJSON, CONNECTION_Sensor)
+			elif countNotInFile <= - 1:
 				## This can be ignored, nothing needs to be done
-				##print(meting['sensorId'] + ": scenario 4")
+				print(meting['sensorId'] + ": scenario 4")
 
 			# Reset variables
 			countInFile = 0
@@ -138,18 +150,19 @@ if __name__ == '__main__':
 	try:
 		while(True):
 			# This waits untill a message is received, only then it will go further with the other code
-			bytesAddressPair1 = UDPServerSocket1.recvfrom(bufferSize)
+			##bytesAddressPair1 = UDPServerSocket1.recvfrom(bufferSize)
 			# This contains the JSON send from all the sensors at a given time
-			resultJSON = bytesAddressPair1[0]
+			##resultJSON = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			##JSONTemp = {"metingen":[{"sensorId":"t1","waarde":65, "status": 1},{"sensorId":"a1","waarde":23.70, "status": 1},{"sensorId":"h1","waarde":27.30, "status": 1}]}
-			JSON = json.dumps(resultJSON)
+			JSONTemp = {"metingen":[{"sensorId":"t2","waarde":25, "status": 1},{"sensorId":"t1","waarde":25, "status": 0},{"sensorId":"a1","waarde":23.70, "status": 0},{"sensorId":"s1","waarde":5, "status": 1}]}
+			JSONP = json.dumps(JSONTemp)
 
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
-			if JSON[4:12] == 'metingen':
+			# 4:12
+			if str(JSONP[2:10]) == "metingen":
 				# Convert the received message in JSON that Python can read
-				JSONP = json.loads(JSON)
+#				JSONP = json.loads(JSON)
 				# Use function in other script to evaluate the alerts
 				# This only evaluates the messages where the sensorId status = 1
 				# Run this program as a thread so the rest will continue
@@ -180,9 +193,6 @@ if __name__ == '__main__':
 						# Convert the Arduino JSON to Azure JSON and add some values according 
 						AzureJSON = {'messageId': messageId, 'sensorId': meting['sensorId'], 'waarde': meting['waarde'], 'tijdstip': date, 'status': int(meting['status'])}
 
-						# Convert the AzureJSON to JSON that Azure can send
-						result = json.dumps(AzureJSON, default = date_converter)
-
 						##clientIP1  = "Client IP Address:{}".format(address1)
 						##print("\n")
 						##print("Message received from: {}".format(clientIP1))
@@ -195,7 +205,7 @@ if __name__ == '__main__':
 						##print("Message that was send: {}".format(result))
 
 						## NEW TESTED WAY TO SEND TO AZURE
-						send_azure_message(result)
+						##send_azure_message(AzureJSON, CONNECTION_Meting)
 						print("\n")
 
 						# Sleep 1 second between sending messages

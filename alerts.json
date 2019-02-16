@@ -46,7 +46,7 @@
 		"grensKritiekMax": 60
 	}, {
 		"sensorId": "s1",
-		"grensMin": 20,
+		"grensMin": 0,
 		"grensMax": 50,
 		"grensKritiekMin": 0,
 		"grensKritiekMax": 100
