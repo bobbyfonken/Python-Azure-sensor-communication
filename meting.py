@@ -90,11 +90,12 @@ def CheckSensors(messages):
 		for meting in messages['metingen']:
 			if int(meting['status']) == 1:
 				sensorenJSON[meting['sensorId']] = "Connected"
+				sensorJSON = {'sensorId': meting['sensorId'], 'status': True}
+				send_azure_message(sensorJSON, CONNECTION_Sensor)
 
 		# Write the data to a local file
 		with open('sensor.json', 'w') as outfile:
 			json.dump(sensorenJSON, outfile)
-			# Also update Azure
 	else:
 		# Read the data from a local file
 		with open('sensor.json') as f:
@@ -155,7 +156,7 @@ if __name__ == '__main__':
 			##resultJSON = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			JSONTemp = {"metingen":[{"sensorId":"t2","waarde":25, "status": 1},{"sensorId":"t1","waarde":25, "status": 0},{"sensorId":"a1","waarde":23.70, "status": 0},{"sensorId":"s1","waarde":5, "status": 1}]}
+			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":25, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 1},{"sensorId":"i1","waarde":5, "status": 1}]}
 			JSONP = json.dumps(JSONTemp)
 
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
@@ -205,7 +206,7 @@ if __name__ == '__main__':
 						##print("Message that was send: {}".format(result))
 
 						## NEW TESTED WAY TO SEND TO AZURE
-						##send_azure_message(AzureJSON, CONNECTION_Meting)
+						send_azure_message(AzureJSON, CONNECTION_Meting)
 						print("\n")
 
 						# Sleep 1 second between sending messages
