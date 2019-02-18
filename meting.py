@@ -52,10 +52,10 @@ def send_azure_message(messageJSON, key):
 	messageJSON = json.dumps(messageJSON, default = date_converter)
 
 	# Establish the connection binding
-	client = IoTHubClient(key, PROTOCOL)
+	##client = IoTHubClient(key, PROTOCOL)
 	# Prepare to send the message and then send it
-	message = IoTHubMessage(messageJSON)
-	client.send_event_async(message, send_confirmation_callback, None)
+	##message = IoTHubMessage(messageJSON)
+	##client.send_event_async(message, send_confirmation_callback, None)
 
 	print("Message transmitted to IoT Hub")
 	print("Message that was send: {}".format(messageJSON))
@@ -83,7 +83,7 @@ def CheckSensors(messages):
 
 	# Checks first if the file exist. If not created new and put first sensor in it
 	# If it already exists, move trough the usual path
-	fileCheck = os.path.isfile('sensor.json')
+	fileCheck = os.path.isfile('temp/sensor.json')
 	##print(fileCheck)
 
 	if fileCheck is False:
@@ -94,12 +94,14 @@ def CheckSensors(messages):
 				send_azure_message(sensorJSON, CONNECTION_Sensor)
 
 		# Write the data to a local file
-		with open('sensor.json', 'w') as outfile:
+		with open('temp/sensor.json', 'w') as outfile:
 			json.dump(sensorenJSON, outfile)
+			outfile.close()
 	else:
 		# Read the data from a local file
-		with open('sensor.json') as f:
+		with open('temp/sensor.json') as f:
 			current = json.loads(f.read())
+			f.close()
 			##print(current)
 			##print ("\n")
 
@@ -117,29 +119,30 @@ def CheckSensors(messages):
 						countNotInFile -= 1
 			if countInFile == 1:
 				## This can be ignored, nothing needs to be done
-				print(meting['sensorId'] + ": scenario 1")
+				##print(meting['sensorId'] + ": scenario 1")
 				sensorFileDict[meting['sensorId']] = "Connected"
 			elif countNotInFile >= 1:
 				## Add sensor to file and send update to Azure
-				print(meting['sensorId'] + ": scenario 3")
+				##print(meting['sensorId'] + ": scenario 3")
 				sensorFileDict[meting['sensorId']] = "Connected"
 				sensorJSON = {'sensorId': meting['sensorId'], 'status': True}
 				send_azure_message(sensorJSON, CONNECTION_Sensor)
 			elif countInFile == -1:
 				## Remove sensor from file and send update to Azure
-				print(meting['sensorId'] + ": scenario 2")
+				##print(meting['sensorId'] + ": scenario 2")
 				sensorJSON = {'sensorId': meting['sensorId'], 'status': False}
 				send_azure_message(sensorJSON, CONNECTION_Sensor)
-			elif countNotInFile <= - 1:
+			##elif countNotInFile <= - 1:
 				## This can be ignored, nothing needs to be done
-				print(meting['sensorId'] + ": scenario 4")
+				##print(meting['sensorId'] + ": scenario 4")
 
 			# Reset variables
 			countInFile = 0
 			countNotInFile = 0
 
-		with open('sensor.json', 'w') as resultFile:
+		with open('temp/sensor.json', 'w') as resultFile:
 			json.dump(sensorFileDict, resultFile)
+			resultFile.close()
 			##print(sensorFileDict)
 		##print("\n")
 
@@ -156,7 +159,7 @@ if __name__ == '__main__':
 			##resultJSON = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":25, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 1},{"sensorId":"i1","waarde":5, "status": 1}]}
+			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":65, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 0},{"sensorId":"i1","waarde":5, "status": 0}]}
 			JSONP = json.dumps(JSONTemp)
 
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
