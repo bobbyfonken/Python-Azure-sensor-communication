@@ -159,7 +159,7 @@ if __name__ == '__main__':
 			##resultJSON = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":65, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 0},{"sensorId":"i1","waarde":5, "status": 0}]}
+			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":35, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 0},{"sensorId":"i1","waarde":5, "status": 0}]}
 			JSONP = json.dumps(JSONTemp)
 
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it

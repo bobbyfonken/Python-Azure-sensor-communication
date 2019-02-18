@@ -7,12 +7,21 @@ from datetime import datetime
 import RPi.GPIO as GPIO
 import threading
 import buzzers
+import smtplib, ssl
 import configmail
 import os.path
 from twilio.rest import Client
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
+
+# Variables for the message body for sms/mail
+dashboardLink = "https://secoda.azurewebsites.net"
+
+# Email variables
+receiver_email = "bobby_fonken@hotmail.com"
+soortCrit = "kritiek "
+soortWarn = "waarschuwings"
 
 # Twilio variables
 account_sid = 'AC1ec93f6749d8550149b9ac36dbcea09c'	# Found on Twilio Console Dashboard
@@ -36,10 +45,20 @@ def buzzer(pin, songLenght):
 	buzzers.main_buzz(int(pin), songLenght)
 
 
-# Definition that put on certain light
+# Definition that puts on certain light
 def light(pin, state):
 	GPIO.setup(pin, GPIO.OUT)
 	GPIO.output(pin, state)
+
+
+# Definition that builds the message body for mail and sms, we don't use html because we want the same message for sms and mail
+def build_message_body(alarmNaam, sensorWaarden, soort):
+	date = datetime.now()
+	message = "Beste NAAM\n\nDit is een " + soort +"alarm!\nAlarmering: " + alarmNaam + ", is afgegaan op: \"" + date.strftime("%d/%m/%Y %H:%M:%S:%f") + "\".\n\nVolgende sensoren hebben hun grens overschreden:\n"
+	for k, v in sensorWaarden.items():
+		message += str(k) + "\n"
+	message += "\nGa naar " + dashboardLink + " voor verdere opvolging!"
+	return message
 
 
 # Definition used for sending an e-mail
@@ -50,22 +69,17 @@ def send_email(subject, msg):
         server.starttls()
         server.login(configmail.EMAIL_ADDRESS, configmail.PASSWORD)
         message = 'Subject: {}\n\n{}'.format(subject, msg)
-        server.sendmail(configmail.EMAIL_ADDRESS, 'bobby1fonken@gmail.com', message)
+        server.sendmail(configmail.EMAIL_ADDRESS, receiver_email, message)
         server.quit()
-        print("Success: Email sent!")
+        ##print("Success: Email sent!")
     except:
         print("Email failed to send.")
-	time.sleep(1)
 
 
 # Definition that checks and builds the necessary e-mail body and then sends it
-def check_email(alarmNaam, sensorWaarden):
-	sbjct = alarmNaam
-	message = "Beste\nAlarmering: " + alarmNaam + ", is afgegaan.\nVolgende sensoren hebben hun grens overschreden:\n"
-	for k, v in sensorWaarden.items():
-		message += str(k) + ": " + str(v) + "\n"
-	message += "\nGa naar LINK voor verdere opvolging!"
-	print(message)
+def check_email(alarmNaam, sensorWaarden, soortAlarm):
+	sbjct = soortAlarm + "alarm: " + alarmNaam
+	message = build_message_body(alarmNaam, sensorWaarden, soortAlarm)
 	send_email(sbjct, message)
 
 # Definition that sends a text message with Twilio
@@ -74,16 +88,12 @@ def send_sms(msg):
 		to=myPhone,
 		from_=TwilioNumber,
 		body= msg + ' ' + u'\U0001f680')
-	print(sms.sid)
+	print(sms)
 
 
 # Definition that builds the sms body and then sends it
-def check_sms(alarmNaam, sensorWaarden):
-	message = "Beste\nAlarmering: " + alarmNaam + ", is afgegaan.\nVolgende sensoren hebben hun grens overschreden:\n"
-	for k, v in sensorWaarden.items():
-		message += str(k) + ": " + str(v) + "\n"
-	message += "\nGa naar LINK voor verdere opvolging!"
-	print(message)
+def check_sms(alarmNaam, sensorWaarden, soortAlarm):
+	message = build_message_body(alarmNaam, sensorWaarden, soortAlarm)
 	send_sms(message)
 
 
@@ -137,55 +147,55 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 					# Send notification if all are critical or a combination of critical and warning
 					if countCrit + countWarn == len(sensorStaat) and countIgnore == 0 and countCrit != 0:
 						print("send email - crit")
-						check_email(alarmNaam, sensorWaarden)
+						check_email(alarmNaam, sensorWaarden, soortCrit)
 						stateMail = "2"
 				elif mailWarn is True:
 					if countWarn == len(sensorStaat):
 						print("send mail - warn")
-						check_mail(alarmNaam, sensorWaarden)
+						check_mail(alarmNaam, sensorWaarden, soortWarn)
 						stateMail = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						print("send mail - warn")
-						check_mail(alarmNaam, sensorWaarden)
+						check_mail(alarmNaam, sensorWaarden, soortWarn)
 						stateMail = "1"
 
 				if smsCrit is True:
 					# Send notification if all are critical or a combination of critical and warning
 					if countCrit + countWarn == len(sensorStaat) and countIgnore == 0 and countCrit != 0:
 						print("send sms - crit")
-						check_sms(alarmNaam, sensorWaarden)
+						check_sms(alarmNaam, sensorWaarden, soortCrit)
 						stateSms = "2"
 				elif smsWarn is True:
 					if countWarn == len(sensorStaat):
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden)
+						check_sms(alarmNaam, sensorWaarden, soortWarn)
 						stateSms = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden)
+						check_sms(alarmNaam, sensorWaarden, soortWarn)
 						stateSms = "1"
 
 			if alarmAND is False:
 				if mailCrit is True:
 					if countCrit >= 1:
 						print("send email - crit")
-						check_email(alarmNaam, sensorWaarden)
+						check_email(alarmNaam, sensorWaarden, soortCrit)
 						stateMail = "2"
 				elif mailWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						print("send email - warn")
-						check_email(alarmNaam, sensorWaarden)
+						check_email(alarmNaam, sensorWaarden, soortWarn)
 						stateMail = "1"
 
 				if smsCrit is True:
 					if countCrit >= 1:
 						print("send sms - crit")
-						check_sms(alarmNaam, sensorWaarden)
+						check_sms(alarmNaam, sensorWaarden, soortCrit)
 						stateSms = "2"
 				elif smsWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden)
+						check_sms(alarmNaam, sensorWaarden, soortWarn)
 						stateSms = "1"
 		else:
 			# Read the data from a local file
@@ -220,20 +230,20 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail != "2":
 							print("send email - crit")
-							check_email(alarmNaam, sensorWaarden)
+							check_email(alarmNaam, sensorWaarden, soortCrit)
 							stateMail = "2"
 				elif mailWarn is True:
 					if countWarn == len(sensorStaat):
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail == "0":
 							print("send mail - warn")
-							check_mail(alarmNaam, sensorWaarden)
+							check_mail(alarmNaam, sensorWaarden, soortWarn)
 							stateMail = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail == "0":
 							print("send mail - warn")
-							check_mail(alarmNaam, sensorWaarden)
+							check_mail(alarmNaam, sensorWaarden, soortWarn)
 							stateMail = "1"
 
 				if smsCrit is True:
@@ -242,20 +252,20 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms != "2":
 							print("send sms - crit")
-							check_sms(alarmNaam, sensorWaarden)
+							check_sms(alarmNaam, sensorWaarden, soortCrit)
 							stateSms = "1"
 				elif smsWarn is True:
 					if countWarn == len(sensorStaat):
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden)
+							check_sms(alarmNaam, sensorWaarden, soortWarn)
 							stateSms = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden)
+							check_sms(alarmNaam, sensorWaarden, soortWarn)
 							stateSms = "1"
 
 			if alarmAND is False:
@@ -264,14 +274,14 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail != "2":
 							print("send email - crit")
-							check_email(alarmNaam, sensorWaarden)
+							check_email(alarmNaam, sensorWaarden, soortCrit)
 							stateMail = "2"
 				elif mailWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail == "0":
-							print("send email - warn test")
-							check_email(alarmNaam, sensorWaarden)
+							print("send email - warn")
+							check_email(alarmNaam, sensorWaarden, soortWarn)
 							stateMail = "1"
 
 				if smsCrit is True:
@@ -279,14 +289,14 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms != "2":
 							print("send sms - crit")
-							check_sms(alarmNaam, sensorWaarden)
+							check_sms(alarmNaam, sensorWaarden, soortCrit)
 							stateSms = "2"
 				elif smsWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden)
+							check_sms(alarmNaam, sensorWaarden, soortWarn)
 							stateSms = "1"
 	else:
 		# If there are sensor in sensorWaarden it means that a boundery has been reached
