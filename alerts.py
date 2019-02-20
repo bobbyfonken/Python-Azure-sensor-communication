@@ -8,7 +8,6 @@ import RPi.GPIO as GPIO
 import threading
 import buzzers
 import smtplib, ssl
-import configmail
 import os.path
 from twilio.rest import Client
 
@@ -18,17 +17,12 @@ GPIO.setwarnings(False)
 # Variables for the message body for sms/mail
 dashboardLink = "https://secoda.azurewebsites.net"
 
-# Email variables
-receiver_email = "bobby_fonken@hotmail.com"
+# Email/sms message variables
 soortCrit = "kritiek "
 soortWarn = "waarschuwings"
 
 # Twilio variables
-account_sid = 'AC1ec93f6749d8550149b9ac36dbcea09c'	# Found on Twilio Console Dashboard
-auth_token = '706f5182bb49697264d802cb469477aa'		# Found on Twilio Console Dashboard
 myPhone = '+32478774497'							# Phone number you used to verify your Twilio account
-TwilioNumber = '+32460207640'						# Phone number given to you by Twilio
-client = Client(account_sid, auth_token)			# Initialize the connection
 
 # Numbers 1 - 6 Are LED's | Numbers 7 - 10 are buzzers
 alarmDict = {"1": 14, "2": 15, "3": 18, "4": 23, "5": 24, "6": 25, "7": 8, "8": 7, "9": 12, "10": 16}
@@ -52,9 +46,9 @@ def light(pin, state):
 
 
 # Definition that builds the message body for mail and sms, we don't use html because we want the same message for sms and mail
-def build_message_body(alarmNaam, sensorWaarden, soort):
+def build_message_body(naam, alarmNaam, sensorWaarden, soort):
 	date = datetime.now()
-	message = "Beste NAAM\n\nDit is een " + soort +"alarm!\nAlarmering: " + alarmNaam + ", is afgegaan op: \"" + date.strftime("%d/%m/%Y %H:%M:%S:%f") + "\".\n\nVolgende sensoren hebben hun grens overschreden:\n"
+	message = "Beste " + naam + "\n\nDit is een " + soort +"alarm!\nAlarmering: " + alarmNaam + ", is afgegaan op: \"" + date.strftime("%d/%m/%Y %H:%M:%S:%f") + "\".\n\nVolgende sensoren hebben hun grens overschreden:\n"
 	for k, v in sensorWaarden.items():
 		message += str(k) + "\n"
 	message += "\nGa naar " + dashboardLink + " voor verdere opvolging!"
@@ -62,39 +56,62 @@ def build_message_body(alarmNaam, sensorWaarden, soort):
 
 
 # Definition used for sending an e-mail
-def send_email(subject, msg):
-    try:
-        server = smtplib.SMTP('smtp.gmail.com:587')
-        server.ehlo()
-        server.starttls()
-        server.login(configmail.EMAIL_ADDRESS, configmail.PASSWORD)
-        message = 'Subject: {}\n\n{}'.format(subject, msg)
-        server.sendmail(configmail.EMAIL_ADDRESS, receiver_email, message)
-        server.quit()
-        ##print("Success: Email sent!")
-    except:
-        print("Email failed to send.")
+def send_email(subject, msg, mailReceiver, EMAIL_ADDRESS, PASSWORD):
+	try:
+		server = smtplib.SMTP('smtp.gmail.com:587')
+		server.ehlo()
+		server.starttls()
+		server.login(EMAIL_ADDRESS, PASSWORD)
+		message = 'Subject: {}\n\n{}'.format(subject, msg)
+		server.sendmail(EMAIL_ADDRESS, mailReceiver, message)
+		server.quit()
+		##print("Success: Email sent!")
+	except:
+		print("Email failed to send.")
 
 
-# Definition that checks and builds the necessary e-mail body and then sends it
-def check_email(alarmNaam, sensorWaarden, soortAlarm):
-	sbjct = soortAlarm + "alarm: " + alarmNaam
-	message = build_message_body(alarmNaam, sensorWaarden, soortAlarm)
-	send_email(sbjct, message)
+# Definition that checks and builds the necessary e-mail body and then sends it to the user if necessary
+def check_email(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, EMAIL_ADDRESS, PASSWORD):
+	# Read the users that are from Azure Cosmos DB "gebruikers" collectie
+	json_users=open('azure/users.json').read()
+	JSONUsers = json.loads(json_users)
+	for alarmuser in alarmUsers:
+		if alarmuser['mail'] is True:
+			for user in JSONUsers:
+				# This way users that are deleted in collectie "gebruikers", but are still referenced in alarmeringen are not included when sending a message: This is just in case.
+				if user['id'] == alarmuser['gebruikerId']:
+					# Make up the message
+					sbjct = soortAlarm + "alarm: " + alarmNaam
+					message = build_message_body(user['naam'], alarmNaam, sensorWaarden, soortAlarm)
+					send_email(sbjct, message, user['email'], EMAIL_ADDRESS, PASSWORD)
 
 # Definition that sends a text message with Twilio
-def send_sms(msg):
+def send_sms(msg, TwilioNumber, SmsReceiver):
 	sms = client.messages.create(
-		to=myPhone,
+		to=SmsReceiver,
 		from_=TwilioNumber,
 		body= msg + ' ' + u'\U0001f680')
 	print(sms)
 
 
 # Definition that builds the sms body and then sends it
-def check_sms(alarmNaam, sensorWaarden, soortAlarm):
-	message = build_message_body(alarmNaam, sensorWaarden, soortAlarm)
-	send_sms(message)
+def check_sms(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, TwilioNumber):
+	message = build_message_body(naam, alarmNaam, sensorWaarden, soortAlarm)
+	send_sms(message, TwilioNumber, myPhone)
+
+	# This is the code you would need when you can send to multiple people with your Twilio account, but we have a trial account with one number we can send to, so e use the above method
+	# Read the users that are from Azure Cosmos DB "gebruikers" collectie
+	##json_users=open('azure/users.json').read()
+	##JSONUsers = json.loads(json_users)
+	##for alarmuser in alarmUsers:
+	##	if alarmuser['sms'] is True:
+	##		for user in JSONUsers:
+	##			# This way users that are deleted in collectie "gebruikers", but are still referenced in alarmeringen are not included when sending a message: This is just in case.
+	##			if user['id'] == alarmuser['gebruikerId']:
+	##				# Make up the message
+	##				sbjct = soortAlarm + "alarm: " + alarmNaam
+	##				message = build_message_body(user['naam'], alarmNaam, sensorWaarden, soortAlarm)
+	##				send_sms(message, TwilioNumber, user['gsm'])
 
 
 # Definition that checks the alerts previous state and then gives one when necessary
@@ -118,7 +135,7 @@ def check_alert(alarmID, state, songLenght):
 
 
 # Definition that checks if a notification in the form of an e-mail or SMS needs to be send
-def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat, countCrit, countWarn, countIgnore, mailCrit, mailWarn, smsCrit, smsWarn):
+def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat, countCrit, countWarn, countIgnore, mailCrit, mailWarn, smsCrit, smsWarn, EMAIL_ADDRESS, PASSWORD, TwilioNumber):
 	# Temp variables
 	previousNotification = True
 	# Checks first if the file exist. If not created new and put current alarmid in it, this way you don't get spammed
@@ -131,6 +148,7 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 	fileCheck = os.path.isfile('temp/previousAlarm.json')
 
 	## Debug prints
+	##print(alarmUsers)
 	##print(len(sensorWaarden))
 	##print(sensorWaarden)
 	##print(sensorStaat)
@@ -141,61 +159,64 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 	# If there are no sensor values in this dict, it means that their in the correct range, so no checks have to be done, the state can be set to 0
 	if len(sensorWaarden) != 0:
 		if fileCheck is False:
+			# We first assume nothing has been send before
+			stateMail = "0"
+			stateSms = "0"
 			# Check if all sensor must be tripped before checkingif a message needs to be sent
 			if alarmAND:
 				if mailCrit is True:
 					# Send notification if all are critical or a combination of critical and warning
 					if countCrit + countWarn == len(sensorStaat) and countIgnore == 0 and countCrit != 0:
 						print("send email - crit")
-						check_email(alarmNaam, sensorWaarden, soortCrit)
+						check_email(alarmUsers, alarmNaam, sensorWaarden, soortCrit, EMAIL_ADDRESS, PASSWORD)
 						stateMail = "2"
 				elif mailWarn is True:
 					if countWarn == len(sensorStaat):
 						print("send mail - warn")
-						check_mail(alarmNaam, sensorWaarden, soortWarn)
+						check_mail(alarmUsers, alarmNaam, sensorWaarden, soortWarn, EMAIL_ADDRESS, PASSWORD)
 						stateMail = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						print("send mail - warn")
-						check_mail(alarmNaam, sensorWaarden, soortWarn)
+						check_mail(alarmUsers, alarmNaam, sensorWaarden, soortWarn, EMAIL_ADDRESS, PASSWORD)
 						stateMail = "1"
 
 				if smsCrit is True:
 					# Send notification if all are critical or a combination of critical and warning
 					if countCrit + countWarn == len(sensorStaat) and countIgnore == 0 and countCrit != 0:
 						print("send sms - crit")
-						check_sms(alarmNaam, sensorWaarden, soortCrit)
+						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 						stateSms = "2"
 				elif smsWarn is True:
 					if countWarn == len(sensorStaat):
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden, soortWarn)
+						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 						stateSms = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden, soortWarn)
+						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 						stateSms = "1"
 
 			if alarmAND is False:
 				if mailCrit is True:
 					if countCrit >= 1:
 						print("send email - crit")
-						check_email(alarmNaam, sensorWaarden, soortCrit)
+						check_email(alarmUsers, alarmNaam, sensorWaarden, soortCrit, EMAIL_ADDRESS, PASSWORD)
 						stateMail = "2"
 				elif mailWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						print("send email - warn")
-						check_email(alarmNaam, sensorWaarden, soortWarn)
+						check_email(alarmUsers, alarmNaam, sensorWaarden, soortWarn, EMAIL_ADDRESS, PASSWORD)
 						stateMail = "1"
 
 				if smsCrit is True:
 					if countCrit >= 1:
 						print("send sms - crit")
-						check_sms(alarmNaam, sensorWaarden, soortCrit)
+						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 						stateSms = "2"
 				elif smsWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden, soortWarn)
+						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 						stateSms = "1"
 		else:
 			# Read the data from a local file
@@ -230,20 +251,20 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail != "2":
 							print("send email - crit")
-							check_email(alarmNaam, sensorWaarden, soortCrit)
+							check_email(alarmUsers, alarmNaam, sensorWaarden, soortCrit, EMAIL_ADDRESS, PASSWORD)
 							stateMail = "2"
 				elif mailWarn is True:
 					if countWarn == len(sensorStaat):
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail == "0":
 							print("send mail - warn")
-							check_mail(alarmNaam, sensorWaarden, soortWarn)
+							check_mail(alarmUsers, alarmNaam, sensorWaarden, soortWarn, EMAIL_ADDRESS, PASSWORD)
 							stateMail = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail == "0":
 							print("send mail - warn")
-							check_mail(alarmNaam, sensorWaarden, soortWarn)
+							check_mail(alarmUsers, alarmNaam, sensorWaarden, soortWarn, EMAIL_ADDRESS, PASSWORD)
 							stateMail = "1"
 
 				if smsCrit is True:
@@ -252,20 +273,20 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms != "2":
 							print("send sms - crit")
-							check_sms(alarmNaam, sensorWaarden, soortCrit)
+							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 							stateSms = "1"
 				elif smsWarn is True:
 					if countWarn == len(sensorStaat):
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden, soortWarn)
+							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 							stateSms = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden, soortWarn)
+							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 							stateSms = "1"
 
 			if alarmAND is False:
@@ -274,14 +295,14 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail != "2":
 							print("send email - crit")
-							check_email(alarmNaam, sensorWaarden, soortCrit)
+							check_email(alarmUsers, alarmNaam, sensorWaarden, soortCrit, EMAIL_ADDRESS, PASSWORD)
 							stateMail = "2"
 				elif mailWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail == "0":
 							print("send email - warn")
-							check_email(alarmNaam, sensorWaarden, soortWarn)
+							check_email(alarmUsers, alarmNaam, sensorWaarden, soortWarn, EMAIL_ADDRESS, PASSWORD)
 							stateMail = "1"
 
 				if smsCrit is True:
@@ -289,14 +310,14 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms != "2":
 							print("send sms - crit")
-							check_sms(alarmNaam, sensorWaarden, soortCrit)
+							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 							stateSms = "2"
 				elif smsWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden, soortWarn)
+							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
 							stateSms = "1"
 	else:
 		# If there are sensor in sensorWaarden it means that a boundery has been reached
@@ -312,8 +333,9 @@ def check_notification(alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat,
 
 
 # Main definition that gets called in the other script
-def check_alerts(metingen):
+def check_alerts(metingen, EMAIL_ADDRESS, PASSWORD, account_sid, auth_token, TwilioNumber):
 	#Variables
+	client = Client(account_sid, auth_token)			# Initialize the connection
 	# Dictionary that holds the received measurements
 	metingenDict = {}
 	# Dictionary to hold the checks of the sensor bounderies
@@ -338,12 +360,12 @@ def check_alerts(metingen):
 	songLenght = len(metingenDict)
 
 	# Read the alerts that are from Azure Cosmos DB "alarmeringen" collectie
-	json_data=open('azure/alerts.json').read()
-	JSON = json.loads(json_data)
+	json_alerts=open('azure/alerts.json').read()
+	JSONAlerts = json.loads(json_alerts)
 
 	##print("Te checken alarmering:")
 	# Loop trough the alarmeringen
-	for alarm in JSON:
+	for alarm in JSONAlerts:
 		# Dictionary that holds the sensors that went off
 		sensorTripped = {}
 		##print("Naam: " + alarm['naam'])
@@ -429,7 +451,7 @@ def check_alerts(metingen):
 
 		##print("\n")
 		# This will check if an e-mail/sms needs to be send
-		check_notification(alarm['ANDOperator'], alarm['id'], alarm['naam'], sensorTripped, alertCheck, countCrit, countWarn, countIgnore, alarm['mail']['kritiek'], alarm['mail']['waarschuwing'], alarm['sms']['kritiek'], alarm['sms']['waarschuwing'])
+		check_notification(alarm['gebruikers'],alarm['ANDOperator'], alarm['id'], alarm['naam'], sensorTripped, alertCheck, countCrit, countWarn, countIgnore, alarm['mail']['kritiek'], alarm['mail']['waarschuwing'], alarm['sms']['kritiek'], alarm['sms']['waarschuwing'], EMAIL_ADDRESS, PASSWORD, TwilioNumber)
 		# Reset these variables each alarmering
 		countIgnore = 0
 		countWarn = 0

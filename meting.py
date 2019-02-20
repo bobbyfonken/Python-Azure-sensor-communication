@@ -12,32 +12,27 @@ import os.path
 import RPi.GPIO as GPIO
 import threading
 import alerts
+import gnupg
+import getpass
 
 # Temp variables for testing
 sensorenJSON = {}
 
+# Variable to use gnupg
+gpg = gnupg.GPG()
+
 # Variables fot the connection to the wifi module hub
-localIP     = "10.3.141.1"
-Port1       = 4001
 bufferSize  = 2048
 count = 0
 
 # Variables for the connection to Azure IoT Hub
-CONNECTION_Meting = "HostName=secodaHub.azure-devices.net;DeviceId=secodaPib;SharedAccessKey=4OS5jUxsttf4ouMY0CdPxnI4cz+k36TDt+SHR6KnguI="
-CONNECTION_Sensor = "HostName=secodaSensor.azure-devices.net;DeviceId=secodaSensor;SharedAccessKey=5AwQZ0GW7DY25/tWG2KA9XOMgc9vzDZv86yFt+hqhTQ="
 PROTOCOL = IoTHubTransportProvider.MQTT
-
-# Create a datagram socket
-UDPServerSocket1 = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-
-# Bind to address and ip
-UDPServerSocket1.bind((localIP, Port1))
-
 
 # Shows the feedback result from Azure IoT Hub - 'OK' is the feedback you want
 def send_confirmation_callback(message, result, user_context):
 	print("Confirmation received for message with result = %s" % (result))
 	if str(result) == "BECAUSE_DESTROY":
+		#### NEEDS WORK ####
 		print("resending message")
 
 
@@ -147,6 +142,34 @@ def CheckSensors(messages):
 		##print("\n")
 
 
+# Main run, ask for the config file gpg encrypted passphrase first, we fill up some variables with the information
+gpgPass = getpass.getpass("Please provide the passphrase to the gpg encrypted config file: ")
+print("\n")
+# Read the file and put each line with path under a new index in a dictionary
+info = []
+with open('config/config.json.gpg', 'rb') as f:
+	# decrypt the file, then get value by turning into string, then loading it as JSON
+	d = json.loads(str(gpg.decrypt_file(f, passphrase=gpgPass)))
+	for value in d:
+		# Needed variables
+		localIP     = value['localIP']
+		Port1       = value['Port1']
+		CONNECTION_Meting = value['CONNECTION_Meting']
+		CONNECTION_Sensor = value['CONNECTION_Sensor']
+		EMAIL_ADDRESS = value['EMAIL_ADDRESS']
+		PASSWORD = value['PASSWORD']
+		account_sid = value['account_sid']
+		auth_token = value['auth_token']
+		TwilioNumber = value['TwilioNumber']
+
+# Create a datagram socket
+UDPServerSocket1 = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+# Bind to address and ip
+UDPServerSocket1.bind((localIP, Port1))
+
+print("Succesfully decrypted the file")
+
 print("UDP server up and listening")
 
 # Main method
@@ -175,7 +198,7 @@ if __name__ == '__main__':
 				##thread.daemon = True
 				##thread.start()
 
-				alerts.check_alerts(JSONP)
+				alerts.check_alerts(JSONP, EMAIL_ADDRESS, PASSWORD, account_sid, auth_token, TwilioNumber)
 				##count += 1
 
 				# Check local file to see if a sensor has already been connected
