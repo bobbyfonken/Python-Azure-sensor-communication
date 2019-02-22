@@ -47,11 +47,11 @@ def send_azure_message(messageJSON, key):
 	messageJSON = json.dumps(messageJSON, default = date_converter)
 
 	# Establish the connection binding
-	##client = IoTHubClient(key, PROTOCOL)
+	client = IoTHubClient(key, PROTOCOL)
 	# Prepare to send the message and then send it
-	##message = IoTHubMessage(messageJSON)
-	##client.send_event_async(message, send_confirmation_callback, None)
-
+	message = IoTHubMessage(messageJSON)
+	client.send_event_async(message, send_confirmation_callback, None)
+	print("\n")
 	print("Message transmitted to IoT Hub")
 	print("Message that was send: {}".format(messageJSON))
 	# Wait one second to make sure the message sends properly
@@ -86,7 +86,12 @@ def CheckSensors(messages):
 			if int(meting['status']) == 1:
 				sensorenJSON[meting['sensorId']] = "Connected"
 				sensorJSON = {'sensorId': meting['sensorId'], 'status': True}
-				send_azure_message(sensorJSON, CONNECTION_Sensor)
+				# Send the message to Azure in a thread in the background while script continous
+				thread = threading.Thread(target=send_azure_message, args=(sensorJSON, str(CONNECTION_Sensor),))
+				# Daemonize thread
+				thread.daemon = True
+				thread.start()
+				##send_azure_message(sensorJSON, str(CONNECTION_Sensor))
 
 		# Write the data to a local file
 		with open('temp/sensor.json', 'w') as outfile:
@@ -121,12 +126,22 @@ def CheckSensors(messages):
 				##print(meting['sensorId'] + ": scenario 3")
 				sensorFileDict[meting['sensorId']] = "Connected"
 				sensorJSON = {'sensorId': meting['sensorId'], 'status': True}
-				send_azure_message(sensorJSON, CONNECTION_Sensor)
+				# Send the message to Azure in a thread in the background while script continous
+				thread = threading.Thread(target=send_azure_message, args=(sensorJSON, str(CONNECTION_Sensor),))
+				# Daemonize thread
+				thread.daemon = True
+				thread.start()
+				##send_azure_message(sensorJSON, str(CONNECTION_Sensor))
 			elif countInFile == -1:
 				## Remove sensor from file and send update to Azure
 				##print(meting['sensorId'] + ": scenario 2")
 				sensorJSON = {'sensorId': meting['sensorId'], 'status': False}
-				send_azure_message(sensorJSON, CONNECTION_Sensor)
+				# Send the message to Azure in a thread in the background while script continous
+				thread = threading.Thread(target=send_azure_message, args=(sensorJSON, str(CONNECTION_Sensor),))
+				# Daemonize thread
+				thread.daemon = True
+				thread.start()
+				##send_azure_message(sensorJSON, str(CONNECTION_Sensor))
 			##elif countNotInFile <= - 1:
 				## This can be ignored, nothing needs to be done
 				##print(meting['sensorId'] + ": scenario 4")
@@ -145,8 +160,7 @@ def CheckSensors(messages):
 # Main run, ask for the config file gpg encrypted passphrase first, we fill up some variables with the information
 gpgPass = getpass.getpass("Please provide the passphrase to the gpg encrypted config file: ")
 print("\n")
-# Read the file and put each line with path under a new index in a dictionary
-info = []
+# Read the file
 with open('config/config.json.gpg', 'rb') as f:
 	# decrypt the file, then get value by turning into string, then loading it as JSON
 	d = json.loads(str(gpg.decrypt_file(f, passphrase=gpgPass)))
@@ -169,8 +183,9 @@ UDPServerSocket1 = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 UDPServerSocket1.bind((localIP, Port1))
 
 print("Succesfully decrypted the file")
+print("\n")
 
-print("UDP server up and listening")
+print("UDP server up and listening...")
 
 # Main method
 if __name__ == '__main__':
@@ -182,7 +197,7 @@ if __name__ == '__main__':
 			##resultJSON = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":35, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 0},{"sensorId":"i1","waarde":5, "status": 0}]}
+			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":35, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 1},{"sensorId":"i1","waarde":5, "status": 1}]}
 			JSONP = json.dumps(JSONTemp)
 
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
@@ -232,21 +247,25 @@ if __name__ == '__main__':
 						##print("Message that was send: {}".format(result))
 
 						## NEW TESTED WAY TO SEND TO AZURE
-						send_azure_message(AzureJSON, CONNECTION_Meting)
-						print("\n")
+						# Send the message to Azure in a thread in the background while script continous
+						thread = threading.Thread(target=send_azure_message, args=(AzureJSON, str(CONNECTION_Meting),))
+						# Daemonize thread
+						thread.daemon = True
+						thread.start()
+						##send_azure_message(AzureJSON, CONNECTION_Meting)
 
 						# Sleep 1 second between sending messages
 						# This has two benefits: you don't overload IoTHub and you make sure the messageId is truly unique
 						# Normally the messageId is unique because it is a combination of the sensorId and the date down to the millisecond in numbers
 						# But you can never be to sure
-						time.sleep(1)
+						##time.sleep(0.5)
 
 				##print(str(count))
 
 			else:
 				print("Ignored message")
 				print("\n")
-			time.sleep(0.2)
+			time.sleep(0.5)
 	except KeyboardInterrupt:
 		GPIO.cleanup()
 		print("\n")

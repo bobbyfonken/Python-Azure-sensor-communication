@@ -83,7 +83,12 @@ def check_email(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, EMAIL_ADDRESS,
 					# Make up the message
 					sbjct = soortAlarm + "alarm: " + alarmNaam
 					message = build_message_body(user['naam'], alarmNaam, sensorWaarden, soortAlarm)
-					send_email(sbjct, message, user['email'], EMAIL_ADDRESS, PASSWORD)
+					# Send the notification in a thread in the background while script continous
+					thread = threading.Thread(target=send_email, args=(sbjct, message, user['email'], EMAIL_ADDRESS, PASSWORD,))
+					# Daemonize thread
+					thread.daemon = True
+					thread.start()
+					#send_email(sbjct, message, user['email'], EMAIL_ADDRESS, PASSWORD)
 
 # Definition that sends a text message with Twilio
 def send_sms(msg, TwilioNumber, SmsReceiver):
@@ -99,7 +104,7 @@ def check_sms(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, TwilioNumber):
 	message = build_message_body(naam, alarmNaam, sensorWaarden, soortAlarm)
 	send_sms(message, TwilioNumber, myPhone)
 
-	# This is the code you would need when you can send to multiple people with your Twilio account, but we have a trial account with one number we can send to, so e use the above method
+	# This is the code you would need when you can send to multiple people with your Twilio account, but we have a trial account with one number we can send to, so we use the above method
 	# Read the users that are from Azure Cosmos DB "gebruikers" collectie
 	##json_users=open('azure/users.json').read()
 	##JSONUsers = json.loads(json_users)
@@ -111,6 +116,11 @@ def check_sms(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, TwilioNumber):
 	##				# Make up the message
 	##				sbjct = soortAlarm + "alarm: " + alarmNaam
 	##				message = build_message_body(user['naam'], alarmNaam, sensorWaarden, soortAlarm)
+	##				# Send the notification in a thread in the background while script continous
+	##				thread = threading.Thread(target=send_sms, args=(message, TwilioNumber, user['gsm'],))
+	##				# Daemonize thread
+	##				thread.daemon = True
+	##				thread.start()
 	##				send_sms(message, TwilioNumber, user['gsm'])
 
 
@@ -120,7 +130,7 @@ def check_alert(alarmID, state, songLenght):
 	# Check if alert has already been given, if it hasn't give alert, else we do nothing
 	if alarmID not in previousAlert and state == 1:
 		if int(alarmID) >= 7:
-			# Let buzzer run in a thread in the backgorund while script continous
+			# Let buzzer run in a thread in the background while script continous
 			thread = threading.Thread(target=buzzer, args=(alarmDict[alarmID], songLenght,))
 			# Daemonize thread
 			thread.daemon = True
