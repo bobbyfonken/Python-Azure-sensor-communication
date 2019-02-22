@@ -2,11 +2,11 @@
     "id": "1",
     "actief": true,
     "naam": "User1",
-    "gsm": "+32478774497",
+    "gsm": "",
     "rolId": 1,
     "wachtwoord": "User2",
-    "email": "bobby_fonken@hotmail.com",
-    "yubikey": "ccccccicckfh",
+    "email": "",
+    "yubikey": "",
     "_rid": "B8lEAP4FIQIBAAAAAAAAAA==",
     "_self": "dbs/B8lEAA==/colls/B8lEAP4FIQI=/docs/B8lEAP4FIQIBAAAAAAAAAA==/",
     "_etag": "\"0200d73a-0000-0000-0000-5c63d2700000\"",
@@ -14,7 +14,7 @@
     "_ts": 1550045808
 }, {
     "rolId": "2",
-    "email": "sander.philipsen@hotmail.com",
+    "email": "",
     "actief": true,
     "id": "a2ba3370-d835-a5a9-7d36-1e7bf0816ce6",
     "_rid": "B8lEAP4FIQICAAAAAAAAAA==",
@@ -23,9 +23,9 @@
     "_attachments": "attachments/",
     "wachtwoord": "Agricon",
     "naam": "sander",
-    "yubikey": "ccccccicckfh",
+    "yubikey": "",
     "telefoonnummer": "",
-    "gsm": "0474472625",
+    "gsm": "",
     "rol": "1",
     "_ts": 1550063014
 }]
