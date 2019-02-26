@@ -204,8 +204,6 @@ if __name__ == '__main__':
 			JSONP = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			##JSONTemp = {"metingen":[{"sensorId":"t1","waarde":35, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 1},{"sensorId":"i1","waarde":5, "status": 1}]}
-			##JSONP = json.dumps(JSONTemp)
 
 			print(JSONP)
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
@@ -233,16 +231,10 @@ if __name__ == '__main__':
 						# Convert the Arduino JSON to Azure JSON and add some values according 
 						AzureJSON = {'messageId': messageId, 'sensorId': meting['sensorId'], 'waarde': meting['waarde'], 'tijdstip': date, 'status': int(meting['status'])}
 
+						# This will print the ip from which the message was received
 						##clientIP1  = "Client IP Address:{}".format(address1)
 						##print("\n")
 						##print("Message received from: {}".format(clientIP1))
-
-						# Establish the connection binding
-						##client = IoTHubClient(CONNECTION_STRING, PROTOCOL)
-						##message = IoTHubMessage(result)
-						##client.send_event_async(message, send_confirmation_callback, None)
-						##print("Message transmitted to IoT Hub")
-						##print("Message that was send: {}".format(result))
 
 						## NEW TESTED WAY TO SEND TO AZURE
 						# Send the message to Azure in a thread in the background while script continous
