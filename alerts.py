@@ -102,7 +102,10 @@ def check_email(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, EMAIL_ADDRESS,
 		print("No users found to send to, make sure the file: users.json.gpg is present.")
 
 # Definition that sends a text message with Twilio
-def send_sms(msg, TwilioNumber, SmsReceiver):
+def send_sms(msg, TwilioNumber, SmsReceiver,account_sid, auth_token):
+	##print(str(account_sid) + ":" + str(auth_token))
+	#Variables
+	client = Client(account_sid, auth_token)			# Initialize the connection
 	sms = client.messages.create(
 		to=SmsReceiver,
 		from_=TwilioNumber,
@@ -111,12 +114,12 @@ def send_sms(msg, TwilioNumber, SmsReceiver):
 
 
 # Definition that builds the sms body and then sends it
-def check_sms(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, TwilioNumber, UsersPass):
-	message = build_message_body(naam, alarmNaam, sensorWaarden, soortAlarm)
-	send_sms(message, TwilioNumber, myPhone)
+def check_sms(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, TwilioNumber, UsersPass,account_sid, auth_token):
+	message = build_message_body('Eloy', alarmNaam, sensorWaarden, soortAlarm)
+	send_sms(message, TwilioNumber, myPhone,account_sid, auth_token)
 
 	# This is the code you would need when you can send to multiple people with your Twilio account, but we have a trial account with one number we can send to, so we use the above method
-	if os.path.isfile('azure/users.json.gpg'):
+	##if os.path.isfile('azure/users.json.gpg'):
 		### Read the users that are from Azure Cosmos DB "gebruikers" collectie
 		##with open('azure/users.json.gpg', 'rb') as f:
 		##	# decrypt the file, then get value by turning into string, then loading it as JSON
@@ -134,8 +137,8 @@ def check_sms(alarmUsers, alarmNaam, sensorWaarden, soortAlarm, TwilioNumber, Us
 		##				# Daemonize thread
 		##				thread.daemon = True
 		##				thread.start()
-	else:
-		print("No users found to send to, make sure the file: users.json.gpg is present.")
+	##else:
+		##print("No users found to send to, make sure the file: users.json.gpg is present.")
 
 
 # Definition that checks the alerts previous state and then gives one when necessary
@@ -159,7 +162,7 @@ def check_alert(alarmID, state, songLenght):
 
 
 # Definition that checks if a notification in the form of an e-mail or SMS needs to be send
-def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat, countCrit, countWarn, countIgnore, mailCrit, mailWarn, smsCrit, smsWarn, EMAIL_ADDRESS, PASSWORD, TwilioNumber, UsersPass):
+def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, sensorStaat, countCrit, countWarn, countIgnore, mailCrit, mailWarn, smsCrit, smsWarn, account_sid, auth_token, EMAIL_ADDRESS, PASSWORD, TwilioNumber, UsersPass):
 	# Temp variables
 	previousNotification = True
 	# Checks first if the file exist. If not created new and put current alarmid in it, this way you don't get spammed
@@ -208,16 +211,16 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 					# Send notification if all are critical or a combination of critical and warning
 					if countCrit + countWarn == len(sensorStaat) and countIgnore == 0 and countCrit != 0:
 						print("send sms - crit")
-						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
+						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber,account_sid, auth_token)
 						stateSms = "2"
 				elif smsWarn is True:
 					if countWarn == len(sensorStaat):
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
+						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber,account_sid, auth_token)
 						stateSms = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber)
+						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber,account_sid, auth_token)
 						stateSms = "1"
 
 			if alarmAND is False:
@@ -235,12 +238,12 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 				if smsCrit is True:
 					if countCrit >= 1:
 						print("send sms - crit")
-						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass)
+						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 						stateSms = "2"
 				elif smsWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						print("send sms - warn")
-						check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass)
+						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 						stateSms = "1"
 		else:
 			# Read the data from a local file
@@ -297,20 +300,20 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms != "2":
 							print("send sms - crit")
-							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass)
+							check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 							stateSms = "1"
 				elif smsWarn is True:
 					if countWarn == len(sensorStaat):
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass)
+							check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 							stateSms = "1"
 					elif countCrit + countWarn == len(sensorStaat) and countIgnore == 0:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass)
+							check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 							stateSms = "1"
 
 			if alarmAND is False:
@@ -334,14 +337,14 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms != "2":
 							print("send sms - crit")
-							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass)
+							check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 							stateSms = "2"
 				elif smsWarn is True:
 					if countWarn >= 1 or countCrit >= 1:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
 							print("send sms - warn")
-							check_sms(alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass)
+							check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 							stateSms = "1"
 	else:
 		# If there are sensor in sensorWaarden it means that a boundery has been reached
@@ -358,8 +361,6 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 
 # Main definition that gets called in the other script
 def check_alerts(metingen, EMAIL_ADDRESS, PASSWORD, account_sid, auth_token, TwilioNumber, AlertsPass, UsersPass):
-	#Variables
-	client = Client(account_sid, auth_token)			# Initialize the connection
 	# Dictionary that holds the received measurements
 	metingenDict = {}
 	# Dictionary to hold the checks of the sensor bounderies
@@ -388,7 +389,7 @@ def check_alerts(metingen, EMAIL_ADDRESS, PASSWORD, account_sid, auth_token, Twi
 		with open('azure/alerts.json.gpg', 'rb') as f:
 			# decrypt the file, then get value by turning into string, then loading it as JSON
 			JSONAlerts = json.loads(str(gpg.decrypt_file(f, passphrase=AlertsPass)))
-		print(JSONAlerts)
+		##print(JSONAlerts)
 
 		##print("Te checken alarmering:")
 		# Loop trough the alarmeringen
@@ -478,7 +479,7 @@ def check_alerts(metingen, EMAIL_ADDRESS, PASSWORD, account_sid, auth_token, Twi
 
 			##print("\n")
 			# This will check if an e-mail/sms needs to be send
-			check_notification(alarm['gebruikers'],alarm['ANDOperator'], alarm['id'], alarm['naam'], sensorTripped, alertCheck, countCrit, countWarn, countIgnore, alarm['mail']['kritiek'], alarm['mail']['waarschuwing'], alarm['sms']['kritiek'], alarm['sms']['waarschuwing'], EMAIL_ADDRESS, PASSWORD, TwilioNumber, UsersPass)
+			check_notification(alarm['gebruikers'],alarm['ANDOperator'], alarm['id'], alarm['naam'], sensorTripped, alertCheck, countCrit, countWarn, countIgnore, alarm['mail']['kritiek'], alarm['mail']['waarschuwing'], alarm['sms']['kritiek'], alarm['sms']['waarschuwing'], account_sid, auth_token, EMAIL_ADDRESS, PASSWORD, TwilioNumber, UsersPass)
 			# Reset these variables each alarmering
 			countIgnore = 0
 			countWarn = 0

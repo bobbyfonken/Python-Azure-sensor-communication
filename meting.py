@@ -205,7 +205,7 @@ if __name__ == '__main__':
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
 
-			print(JSONP)
+			##print(JSONP)
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
 			# 4:12
 			if str(JSONP[2:10]) == "metingen":
