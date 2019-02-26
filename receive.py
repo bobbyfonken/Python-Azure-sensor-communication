@@ -22,16 +22,20 @@ gpg = gnupg.GPG()
 # Choose AMQP or AMQP_WS as transport protocol
 PROTOCOL = IoTHubTransportProvider.AMQP
 
-# Get the necessary connection string from the gpg encrypted file config/config.json.gpg
-gpgPass = getpass.getpass("Please provide the passphrase to the gpg encrypted config file: ")
-print("\n")
-# Read the file
-with open('config/config.json.gpg', 'rb') as f:
-	# decrypt the file, then get value by turning into string, then loading it as JSON
-	d = json.loads(str(gpg.decrypt_file(f, passphrase=gpgPass)))
-	for value in d:
-		# Needed variables
-		CONNECTION_C2D = value['CONNECTION_C2D']
+def write_json_encrypted(JSON, Password, soort):
+	soort = 'azure/' + soort + '.json.gpg'
+	# Encrypt the information
+	JSONEncrypted = gpg.encrypt(JSON, None, passphrase=Password, symmetric=True)
+	# Write the information to a file
+	with open(soort, 'w') as outfile:
+		outfile.write(str(JSONEncrypted))
+
+	print("Message is stored in: "+ soort)
+	print("\n")
+	# Prints debug information
+	print 'ok: ', JSONEncrypted.ok
+	print 'status: ', JSONEncrypted.status
+	print 'stderr: ', JSONEncrypted.stderr
 
 def receive_message_callback(message, counter):
 	global RECEIVE_CALLBACKS
@@ -39,15 +43,19 @@ def receive_message_callback(message, counter):
 	size = len(message_buffer)
 	# print ( "Received Message [%d]:" % counter )
 	print("Message received")
-
+	print(message_buffer[:size].decode('utf-8'))
 	# Write the JSON to the correct file
 	ReceivedJSON = json.loads(message_buffer[:size].decode('utf-8'))
-	with open('azure/alerts.json', 'w') as resultFile:
-		json.dump(ReceivedJSON, resultFile)
-		resultFile.close()
-	
-	print("Message is stored in azure/alerts.json")
-	
+
+	# Check if the JSON is from the collection "gebruikers" or "alarmeringen"
+	if len(ReceivedJSON) != 0:
+		if 'alarmen' in ReceivedJSON[0]:
+			# Write to alerts.json.gpg
+			write_json_encrypted(json.dumps(ReceivedJSON), AlertsPass, 'alerts')
+		else:
+			# Write to users.json.gpg
+			write_json_encrypted(json.dumps(ReceivedJSON), UsersPass, 'users')
+
 	# print ( "    Data: <<<%s>>> & Size=%d" % (message_buffer[:size].decode('utf-8'), size) )
 	# map_properties = message.properties()
 	# key_value_pair = map_properties.get_internals()
@@ -78,13 +86,6 @@ def print_last_message_time(client):
 			print ( iothub_client_error )
 
 
-def iothub_client_init():
-	client = IoTHubClient(str(CONNECTION_C2D), PROTOCOL)
-
-	client.set_message_callback(receive_message_callback, RECEIVE_CONTEXT)
-
-	return client
-
 def iothub_client_sample_run():
 	try:
 		client = iothub_client_init()
@@ -109,6 +110,19 @@ def iothub_client_sample_run():
 
 
 if __name__ == '__main__':
+	# Get the necessary connection string from the gpg encrypted file config/config.json.gpg
+	gpgPass = getpass.getpass("Please provide the passphrase to the gpg encrypted config file: ")
+	print("\n")
+	# Read the file
+	with open('config/config.json.gpg', 'rb') as f:
+		# decrypt the file, then get value by turning into string, then loading it as JSON
+		d = json.loads(str(gpg.decrypt_file(f, passphrase=gpgPass)))
+		for value in d:
+			# Needed variables
+			CONNECTION_C2D = value['CONNECTION_C2D']
+			AlertsPass = value['alertsJson']
+			UsersPass = value['usersJson']
+	print(CONNECTION_C2D)
 	print("Listening for messages on IoT Hub...")
 	##print ( "    Connection string=%s" % CONNECTION_C2D )
 

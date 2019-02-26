@@ -11,7 +11,6 @@ gpgPass = getpass.getpass("Please provide the passphrase to encrypt the config f
 print("\n")
 
 # Opens the unencrypted file and encrypts the contents --> DELETE THE UNENCRYPTED FILE AFTERWARDS!!!!!
-gpg = gnupg.GPG()
 with open('config.json', 'rb') as f:
 	status = gpg.encrypt_file(f, None, passphrase=gpgPass, symmetric=True, output='config.json.gpg')
 

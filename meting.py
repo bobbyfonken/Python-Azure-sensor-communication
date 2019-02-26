@@ -54,8 +54,8 @@ def send_azure_message(messageJSON, key):
 	print("\n")
 	print("Message transmitted to IoT Hub")
 	print("Message that was send: {}".format(messageJSON))
-	# Wait one second to make sure the message sends properly
-	time.sleep(1)
+	# Give the message time to send
+	time.sleep(2)
 
 
 # Checks if the sensors are connected or not and updates Azure accordingly
@@ -92,6 +92,8 @@ def CheckSensors(messages):
 				thread.daemon = True
 				thread.start()
 				##send_azure_message(sensorJSON, str(CONNECTION_Sensor))
+			# Give message time to send
+			time.sleep(1)
 
 		# Write the data to a local file
 		with open('temp/sensor.json', 'w') as outfile:
@@ -150,6 +152,9 @@ def CheckSensors(messages):
 			countInFile = 0
 			countNotInFile = 0
 
+			# Give message time to send
+			time.sleep(1)
+
 		with open('temp/sensor.json', 'w') as resultFile:
 			json.dump(sensorFileDict, resultFile)
 			resultFile.close()
@@ -175,6 +180,8 @@ with open('config/config.json.gpg', 'rb') as f:
 		account_sid = value['account_sid']
 		auth_token = value['auth_token']
 		TwilioNumber = value['TwilioNumber']
+		AlertsPass = value['alertsJson']
+		UsersPass = value['usersJson']
 
 # Create a datagram socket
 UDPServerSocket1 = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -192,28 +199,19 @@ if __name__ == '__main__':
 	try:
 		while(True):
 			# This waits untill a message is received, only then it will go further with the other code
-			##bytesAddressPair1 = UDPServerSocket1.recvfrom(bufferSize)
+			bytesAddressPair1 = UDPServerSocket1.recvfrom(bufferSize)
 			# This contains the JSON send from all the sensors at a given time
-			##resultJSON = bytesAddressPair1[0]
+			JSONP = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
-			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":35, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 1},{"sensorId":"i1","waarde":5, "status": 1}]}
-			JSONP = json.dumps(JSONTemp)
+			##JSONTemp = {"metingen":[{"sensorId":"t1","waarde":35, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 1},{"sensorId":"i1","waarde":5, "status": 1}]}
+			##JSONP = json.dumps(JSONTemp)
 
+			print(JSONP)
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
 			# 4:12
 			if str(JSONP[2:10]) == "metingen":
-				# Convert the received message in JSON that Python can read
-#				JSONP = json.loads(JSON)
-				# Use function in other script to evaluate the alerts
-				# This only evaluates the messages where the sensorId status = 1
-				# Run this program as a thread so the rest will continue
-				##thread = threading.Thread(target=alerts.check_alerts, kwargs=(JSONP))
-				# Daemonize thread
-				##thread.daemon = True
-				##thread.start()
-
-				alerts.check_alerts(JSONP, EMAIL_ADDRESS, PASSWORD, account_sid, auth_token, TwilioNumber)
+				alerts.check_alerts(JSONP, EMAIL_ADDRESS, PASSWORD, account_sid, auth_token, TwilioNumber, AlertsPass, UsersPass)
 				##count += 1
 
 				# Check local file to see if a sensor has already been connected
@@ -254,18 +252,17 @@ if __name__ == '__main__':
 						thread.start()
 						##send_azure_message(AzureJSON, CONNECTION_Meting)
 
-						# Sleep 1 second between sending messages
-						# This has two benefits: you don't overload IoTHub and you make sure the messageId is truly unique
-						# Normally the messageId is unique because it is a combination of the sensorId and the date down to the millisecond in numbers
-						# But you can never be to sure
-						##time.sleep(0.5)
+					# Sleep 1 second between sending messages
+					# This has two benefits: you don't overload IoTHub and you make sure the messageId is truly unique
+					# Normally the messageId is unique because it is a combination of the sensorId and the date down to the millisecond in numbers
+					# But you can never be to sure
+					time.sleep(1.5)
 
 				##print(str(count))
 
 			else:
 				print("Ignored message")
 				print("\n")
-			time.sleep(0.5)
 	except KeyboardInterrupt:
 		GPIO.cleanup()
 		print("\n")
