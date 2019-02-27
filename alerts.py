@@ -25,12 +25,11 @@ dashboardLink = "https://secoda.azurewebsites.net"
 soortCrit = "kritiek "
 soortWarn = "waarschuwings"
 
-# Twilio variables
+# Twilio variables - Normally the numbers of the users.json.gpg file will be used
 myPhone = '+32478774497'							# Phone number you used to verify your Twilio account
 
-# Numbers 1 - 6 Are LED's | Numbers 7 - 10 are buzzers
-# For now 1 - 4 leds connected | 8 - 10 buzzers connected
-alarmDict = {"1": 14, "2": 15, "3": 18, "4": 23, "5": 24, "6": 25, "7": 8, "8": 7, "9": 12, "10": 16}
+# Numbers 1 - 4 Are LED's | Numbers 8 - 10 are buzzers
+alarmDict = {"1": 14, "2": 15, "3": 18, "4": 23, "8": 7, "9": 12, "10": 16}
 
 # Dictionary used to store the state of the previous alerts. This is needed so that the alert does not get switched off when checking the next alert
 previousAlert = {}
@@ -197,7 +196,7 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 						print("send email - crit")
 						check_email(alarmUsers, alarmNaam, sensorWaarden, soortCrit, EMAIL_ADDRESS, PASSWORD, UsersPass)
 						stateMail = "2"
-				elif mailWarn is True:
+				if mailWarn is True and stateMail != "2":
 					if countWarn == len(sensorStaat):
 						print("send mail - warn")
 						check_mail(alarmUsers, alarmNaam, sensorWaarden, soortWarn, EMAIL_ADDRESS, PASSWORD, UsersPass)
@@ -213,7 +212,7 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 						print("send sms - crit")
 						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber,account_sid, auth_token)
 						stateSms = "2"
-				elif smsWarn is True:
+				if smsWarn is True and stateSms != "2":
 					if countWarn == len(sensorStaat):
 						print("send sms - warn")
 						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber,account_sid, auth_token)
@@ -229,7 +228,7 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 						print("send email - crit")
 						check_email(alarmUsers, alarmNaam, sensorWaarden, soortCrit, EMAIL_ADDRESS, PASSWORD, UsersPass)
 						stateMail = "2"
-				elif mailWarn is True:
+				if mailWarn is True and stateMail != "2":
 					if countWarn >= 1 or countCrit >= 1:
 						print("send email - warn")
 						check_email(alarmUsers, alarmNaam, sensorWaarden, soortWarn, EMAIL_ADDRESS, PASSWORD, UsersPass)
@@ -240,7 +239,7 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 						print("send sms - crit")
 						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 						stateSms = "2"
-				elif smsWarn is True:
+				if smsWarn is True and stateSms != "2":
 					if countWarn >= 1 or countCrit >= 1:
 						print("send sms - warn")
 						check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
@@ -280,7 +279,7 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 							print("send email - crit")
 							check_email(alarmUsers, alarmNaam, sensorWaarden, soortCrit, EMAIL_ADDRESS, PASSWORD, UsersPass)
 							stateMail = "2"
-				elif mailWarn is True:
+				if mailWarn is True and stateMail == "0":
 					if countWarn == len(sensorStaat):
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail == "0":
@@ -302,7 +301,7 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 							print("send sms - crit")
 							check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 							stateSms = "1"
-				elif smsWarn is True:
+				if smsWarn is True and stateSms == "0":
 					if countWarn == len(sensorStaat):
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":
@@ -324,7 +323,7 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 							print("send email - crit")
 							check_email(alarmUsers, alarmNaam, sensorWaarden, soortCrit, EMAIL_ADDRESS, PASSWORD, UsersPass)
 							stateMail = "2"
-				elif mailWarn is True:
+				if mailWarn is True and stateMail == "0":
 					if countWarn >= 1 or countCrit >= 1:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateMail == "0":
@@ -339,7 +338,7 @@ def check_notification(alarmUsers, alarmAND, alarmid, alarmNaam, sensorWaarden, 
 							print("send sms - crit")
 							check_sms(alarmUsers, alarmNaam, sensorWaarden, soortCrit, TwilioNumber, UsersPass,account_sid, auth_token)
 							stateSms = "2"
-				elif smsWarn is True:
+				if smsWarn is True and stateSms == "0":
 					if countWarn >= 1 or countCrit >= 1:
 						# If the previousNotification is False we can send a notification again if necessary
 						if previousNotification is False or stateSms == "0":

@@ -199,11 +199,13 @@ if __name__ == '__main__':
 	try:
 		while(True):
 			# This waits untill a message is received, only then it will go further with the other code
-			bytesAddressPair1 = UDPServerSocket1.recvfrom(bufferSize)
+			##bytesAddressPair1 = UDPServerSocket1.recvfrom(bufferSize)
 			# This contains the JSON send from all the sensors at a given time
-			JSONP = bytesAddressPair1[0]
+			##JSONP = bytesAddressPair1[0]
 			# This contains the address and port the message came from
 			##address1 = bytesAddressPair1[1]
+			JSONTemp = {"metingen":[{"sensorId":"t1","waarde":35, "status": 1},{"sensorId":"v1","waarde":23.70, "status": 1},{"sensorId":"i1","waarde":5, "status": 1}]}
+			JSONP = json.dumps(JSONTemp)
 
 			##print(JSONP)
 			# Check if the message is the test message to establish connection ("AT"), if so ignore it
